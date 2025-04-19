@@ -26,6 +26,10 @@ CORS(app, resources={r"/*": {"origins": [
     "https://eb3a-2603-8000-ca00-88c"  # Added the current ngrok URL
 ]}}, supports_credentials=True)
 
+@app.route('/')
+def home():
+    return "Welcome to the Telegram Bot Server!"
+
 @app.route('/user/<int:user_id>', methods=['GET'])
 def fetch_user(user_id):
     """Fetch user data by ID."""
@@ -86,7 +90,7 @@ def update_user(user_id):
 
 def run_flask():
     """Run the Flask app in a separate thread."""
-    app.run(debug=True, use_reloader=False)
+    app.run(debug=False, use_reloader=False)
 
 # Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
