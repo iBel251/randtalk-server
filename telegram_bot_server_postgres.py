@@ -93,6 +93,9 @@ def run_flask():
     """Run the Flask app in a separate thread."""
     app.run(debug=False, use_reloader=False)
 
+# Define the application object globally
+application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+
 # Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
     user = update.effective_user  # Get the user object
@@ -205,9 +208,6 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
         )
 
 def main():
-    # Replace 'YOUR_BOT_TOKEN' with TELEGRAM_BOT_TOKEN
-    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
-
     # Register the /start command handler
     application.add_handler(CommandHandler("start", start))
 
