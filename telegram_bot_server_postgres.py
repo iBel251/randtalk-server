@@ -13,6 +13,7 @@ from threading import Thread
 # Replace hardcoded values with environment variables
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Set this in Render's environment variables
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -228,13 +229,15 @@ def main():
     # Register a handler for forwarding messages between matched users
     application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_message))
 
-    # Start the bot
-    application.run_polling()
+async def start_webhook():
+    # Set the webhook for Telegram
+    await application.bot.set_webhook(WEBHOOK_URL)
 
 if __name__ == "__main__":
     # Start the Flask app in a separate thread
     flask_thread = Thread(target=run_flask)
     flask_thread.start()
 
-    # Start the Telegram bot
-    main()
+    # Start the Telegram bot in webhook mode
+    import asyncio
+    asyncio.run(start_webhook())
