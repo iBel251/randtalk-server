@@ -31,6 +31,14 @@ CORS(app, resources={r"/*": {"origins": [
 def home():
     return "Welcome to the Telegram Bot Server!"
 
+@app.route('/', methods=['POST'])
+def telegram_webhook():
+    """Handle Telegram webhook updates."""
+    update = request.get_json()
+    if update:
+        application.update_queue.put_nowait(Update.de_json(update, application.bot))
+    return "", 200
+
 @app.route('/user/<int:user_id>', methods=['GET'])
 def fetch_user(user_id):
     """Fetch user data by ID."""
