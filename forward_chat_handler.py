@@ -21,7 +21,7 @@ def get_partner_id(db, sender_id):
     return None
 
 async def forward_message(update: Update, context: CallbackContext) -> None:
-    user_id = str(update.effective_user.id)
+    user_id = int(update.effective_user.id)
     message = update.message
 
     # Fetch the database session

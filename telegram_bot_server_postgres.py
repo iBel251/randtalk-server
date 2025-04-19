@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, CallbackContext, MessageHandler, filters
 from connect_db import get_db, User, Chat as Chats
@@ -9,6 +10,9 @@ from end_chat_handler import end_chat, cancel_waiting
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from threading import Thread
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Replace hardcoded values with environment variables
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -108,7 +112,7 @@ application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 # Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
     user = update.effective_user  # Get the user object
-    user_id = str(user.id)  # Convert user ID to string
+    user_id = int(user.id)  # Use int for user_id
 
     # Fetch user details from PostgreSQL
     db = next(get_db())
@@ -123,7 +127,7 @@ async def start(update: Update, context: CallbackContext) -> None:
             reply_markup=reply_markup
         )
         # Save initial user details
-        new_user = User(id=user.id, name=user.first_name, username=user.username, account_status="incomplete", phone=None)
+        new_user = User(id=user_id, name=user.first_name, username=user.username, account_status="incomplete", phone=None)
         db.add(new_user)
         db.commit()
         return
@@ -181,7 +185,7 @@ async def start(update: Update, context: CallbackContext) -> None:
 # Define a handler to process the shared contact
 async def handle_contact(update: Update, context: CallbackContext) -> None:
     contact = update.message.contact
-    user_id = str(contact.user_id)  # Convert user ID to string
+    user_id = int(contact.user_id)  # Use int for user_id
 
     # Fetch user details from PostgreSQL
     db = next(get_db())

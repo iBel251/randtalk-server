@@ -25,7 +25,7 @@ def find_match(db, user_id, preferences):
     return query.first()
 
 async def search_partner(update: Update, context: CallbackContext) -> None:
-    user_id = str(update.effective_user.id)
+    user_id = int(update.effective_user.id)
 
     # Fetch user details from PostgreSQL
     db = next(get_db())

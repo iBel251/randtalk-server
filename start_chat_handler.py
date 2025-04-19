@@ -3,7 +3,7 @@ from telegram.ext import CallbackContext
 from connect_db import User
 
 async def start_chat(update: Update, context: CallbackContext, db) -> None:
-    user_id = str(update.effective_user.id)  # Convert user ID to string
+    user_id = int(update.effective_user.id)  # Use int for user_id
 
     # Fetch user details from PostgreSQL
     user_data = db.query(User).filter(User.id == user_id).first()
