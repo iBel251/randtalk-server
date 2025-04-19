@@ -91,7 +91,8 @@ def update_user(user_id):
 
 def run_flask():
     """Run the Flask app in a separate thread."""
-    app.run(debug=False, use_reloader=False)
+    port = int(os.getenv("PORT", 5000))  # Use the PORT environment variable or default to 5000
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 
 # Define the application object globally
 application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
