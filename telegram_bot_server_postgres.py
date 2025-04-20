@@ -121,12 +121,6 @@ def run_flask():
 # Define the application object globally
 application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-# Initialize the Application before processing updates
-import asyncio
-async def init_app():
-    await application.initialize()
-asyncio.run(init_app())
-
 # Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
     try:
@@ -265,10 +259,6 @@ def main():
     # Register a handler for forwarding messages between matched users
     application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_message))
 
-async def start_webhook():
-    # Set the webhook for Telegram
-    await application.bot.set_webhook(WEBHOOK_URL)
-
 if __name__ == "__main__":
     # Start the Flask app in a separate thread
     flask_thread = Thread(target=run_flask)
@@ -277,6 +267,10 @@ if __name__ == "__main__":
     # Register all bot handlers
     main()
 
-    # Start the Telegram bot in webhook mode
+    # Set the webhook and initialize the application ONCE, synchronously, before entering the Flask loop
     import asyncio
-    asyncio.run(start_webhook())
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(application.initialize())
+    loop.run_until_complete(application.bot.set_webhook(WEBHOOK_URL))
+    # Do NOT call asyncio.run() again or start another event loop!
