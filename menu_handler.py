@@ -1,4 +1,4 @@
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from telegram.ext import CallbackContext
 from connect_db import get_db, User
 
@@ -27,10 +27,9 @@ async def menu_callback_handler(update: Update, context: CallbackContext) -> Non
         await query.answer()
         await query.edit_message_text(f"You have {points} points.")
     elif query.data == "menu_earn_points":
-        from telegram import InlineKeyboardMarkup, InlineKeyboardButton
         webapp_url = f"https://randtalk-18e41.web.app/earn/{user_id}"
         inline_keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("Open Web App to Earn Points", url=webapp_url)]
+            [InlineKeyboardButton("Open Web App to Earn Points", web_app=WebAppInfo(url=webapp_url))]
         ])
         await query.answer()
         await query.edit_message_text(
@@ -38,10 +37,9 @@ async def menu_callback_handler(update: Update, context: CallbackContext) -> Non
             reply_markup=inline_keyboard
         )
     elif query.data == "menu_edit_preferences":
-        from telegram import InlineKeyboardMarkup, InlineKeyboardButton
         webapp_url = f"https://randtalk-18e41.web.app/{user_id}"
         inline_keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("Open Web App to Edit Preferences", url=webapp_url)]
+            [InlineKeyboardButton("Open Web App to Edit Preferences", web_app=WebAppInfo(url=webapp_url))]
         ])
         await query.answer()
         await query.edit_message_text(
