@@ -7,119 +7,19 @@ from start_chat_handler import start_chat
 from search_partner_handler import search_partner
 from forward_chat_handler import forward_message
 from end_chat_handler import end_chat, cancel_waiting
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-from threading import Thread
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Replace hardcoded values with environment variables
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-DATABASE_URL = os.getenv("DATABASE_URL")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Set this in Render's environment variables
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+PORT = int(os.getenv("PORT", 5000))
 
-# Initialize Flask app
-app = Flask(__name__)
-
-# Enable CORS for the Flask app
-CORS(app, resources={r"/*": {"origins": [
-    "http://localhost:3000",
-    "https://randtalk-18e41.web.app",
-    "https://web.telegram.org",
-    "https://abcd1234.ngrok.io",  # Replace with your actual ngrok URL
-    "https://eb3a-2603-8000-ca00-88c"  # Added the current ngrok URL
-]}}, supports_credentials=True)
-
-@app.route('/')
-def home():
-    return "Welcome to the Telegram Bot Server!"
-
-@app.route('/', methods=['POST'])
-def telegram_webhook():
-    print("Webhook endpoint called", flush=True)
-    import asyncio
-    import json
-    try:
-        update = request.get_json()
-        print("Incoming update:", json.dumps(update, indent=2), flush=True)  # Log the incoming update
-        if update:
-            tg_update = Update.de_json(update, application.bot)
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            loop.run_until_complete(application.process_update(tg_update))
-    except Exception as e:
-        print(f"Error in webhook endpoint: {e}", flush=True)
-    return "", 200
-
-@app.route('/user/<int:user_id>', methods=['GET'])
-def fetch_user(user_id):
-    """Fetch user data by ID."""
-    db = next(get_db())
-    user = db.query(User).filter(User.id == user_id).first()
-
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    return jsonify({
-        "id": user.id,
-        "name": user.name,
-        "username": user.username,
-        "phone": user.phone,
-        "account_status": user.account_status,
-        "preferences": user.preferences,
-        "age": user.age,
-        "city": user.city,
-        "country": user.country,
-        "gender": user.gender,
-        "points": user.points,
-        "status": user.status,
-        "birthdate": user.birthdate
-    })
-
-@app.route('/user/<int:user_id>', methods=['PUT'])
-def update_user(user_id):
-    """Update user data by ID."""
-    db = next(get_db())
-    user = db.query(User).filter(User.id == user_id).first()
-
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    data = request.json
-
-    # Update fields if provided in the request
-    if "preferences" in data:
-        user.preferences = data["preferences"]
-    if "points" in data:
-        user.points = data["points"]
-    if "gender" in data:
-        user.gender = data["gender"]
-    if "birthdate" in data:
-        user.birthdate = data["birthdate"]
-    if "city" in data:
-        user.city = data["city"]
-    if "country" in data:
-        user.country = data["country"]
-    if "age" in data:
-        user.age = data["age"]
-    if "account_status" in data:
-        user.account_status = data["account_status"]
-
-    db.commit()
-
-    return jsonify({"message": "User data updated successfully"})
-
-def run_flask():
-    """Run the Flask app in a separate thread."""
-    port = int(os.getenv("PORT", 5000))  # Use the PORT environment variable or default to 5000
-    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
-
-# Define the application object globally
-application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+application = Application.builder() \
+    .token(TELEGRAM_BOT_TOKEN) \
+    .concurrent_updates(True)  # Telegram recommended for webhook \
+    .post_init(None)           # Default, can be omitted \
+    .build()
 
 # Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
@@ -238,39 +138,25 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
         )
 
 def main():
-    # Register the /start command handler
     application.add_handler(CommandHandler("start", start))
-
-    # Register a handler for shared contacts
     application.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-
-    # Register a handler for "Start Chat"
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^Start Chat$"), lambda u, c: start_chat(u, c, next(get_db()))))
-
-    # Register a handler for "Search Partner"
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^Search Partner$"), search_partner))
-
-    # Register a handler for "End Chat"
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^End Chat$"), end_chat))
-
-    # Register a handler for "Cancel Waiting"
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^Cancel Waiting$"), cancel_waiting))
-
-    # Register a handler for forwarding messages between matched users
     application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_message))
 
 if __name__ == "__main__":
-    # Start the Flask app in a separate thread
-    flask_thread = Thread(target=run_flask)
-    flask_thread.start()
-
-    # Register all bot handlers
-    main()
-
-    # Set the webhook and initialize the application ONCE, synchronously, before entering the Flask loop
     import asyncio
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(application.initialize())
-    loop.run_until_complete(application.bot.set_webhook(WEBHOOK_URL))
-    # Do NOT call asyncio.run() again or start another event loop!
+    async def main_async():
+        main()
+        await application.initialize()
+        await application.bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True, allowed_updates=["message", "edited_message", "callback_query", "chat_member", "my_chat_member"])  # Telegram recommended
+        await application.start()
+        await application.run_webhook(
+            listen="0.0.0.0",
+            port=PORT,
+            webhook_url=WEBHOOK_URL,
+            allowed_updates=["message", "edited_message", "callback_query", "chat_member", "my_chat_member"]  # Telegram recommended
+        )
+    asyncio.run(main_async())
