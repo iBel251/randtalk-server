@@ -34,11 +34,12 @@ def health_check():
 def webhook():
     update = request.get_json(force=True)
     tg_update = Update.de_json(update, application.bot)
-    loop = asyncio.get_event_loop()
-    if loop.is_running():
-        loop.create_task(application.process_update(tg_update))
-    else:
-        loop.run_until_complete(application.process_update(tg_update))
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    loop.run_until_complete(application.process_update(tg_update))
     return "", 200
 
 # Define the /start command handler
