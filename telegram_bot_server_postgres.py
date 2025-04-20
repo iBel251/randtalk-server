@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask, request
 import asyncio
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, CallbackContext, MessageHandler, filters
@@ -23,24 +22,6 @@ application = (
     .concurrent_updates(True)
     .build()
 )
-
-app = Flask(__name__)
-
-@app.route("/", methods=["GET"])
-def health_check():
-    return "OK", 200
-
-@app.route("/webhook", methods=["POST"])
-def webhook():
-    update = request.get_json(force=True)
-    tg_update = Update.de_json(update, application.bot)
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    loop.run_until_complete(application.process_update(tg_update))
-    return "", 200
 
 # Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
@@ -168,9 +149,19 @@ def main():
     application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_message))
 
 if __name__ == "__main__":
-    main()
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(application.initialize())
-    loop.run_until_complete(application.bot.set_webhook(f"{WEBHOOK_URL}/webhook", drop_pending_updates=True, allowed_updates=["message", "edited_message", "callback_query", "chat_member", "my_chat_member"]))
-    app.run(host="0.0.0.0", port=PORT)
+    async def main_async():
+        main()
+        await application.initialize()
+        await application.bot.set_webhook(
+            WEBHOOK_URL,
+            drop_pending_updates=True,
+            allowed_updates=["message", "edited_message", "callback_query", "chat_member", "my_chat_member"]
+        )
+        await application.start()
+        await application.run_webhook(
+            listen="0.0.0.0",
+            port=PORT,
+            webhook_url=WEBHOOK_URL,
+            allowed_updates=["message", "edited_message", "callback_query", "chat_member", "my_chat_member"]
+        )
+    asyncio.run(main_async())
