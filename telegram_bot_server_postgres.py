@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask, request
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import asyncio
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, CallbackContext, MessageHandler, filters
@@ -25,10 +26,14 @@ application = (
 )
 
 app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": [
+    "https://randtalk-18e41.web.app",
+    "http://localhost:3000"
+]}}, supports_credentials=True)
 
 @app.route("/", methods=["GET"])
-def health_check():
-    return "OK", 200
+def home():
+    return "Welcome to the Telegram Bot Server!", 200
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
@@ -41,6 +46,41 @@ def webhook():
         asyncio.set_event_loop(loop)
     loop.run_until_complete(application.process_update(tg_update))
     return "", 200
+
+@app.route('/user/<int:user_id>', methods=['GET'])
+def fetch_user(user_id):
+    db = next(get_db())
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    return jsonify({
+        "id": user.id,
+        "name": user.name,
+        "username": user.username,
+        "phone": user.phone,
+        "account_status": user.account_status,
+        "preferences": user.preferences,
+        "age": user.age,
+        "city": user.city,
+        "country": user.country,
+        "gender": user.gender,
+        "points": user.points,
+        "status": user.status,
+        "birthdate": user.birthdate
+    })
+
+@app.route('/user/<int:user_id>', methods=['PUT'])
+def update_user(user_id):
+    db = next(get_db())
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    data = request.json
+    for key, value in data.items():
+        if hasattr(user, key):
+            setattr(user, key, value)
+    db.commit()
+    return jsonify({"message": "User data updated successfully"})
 
 # Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
