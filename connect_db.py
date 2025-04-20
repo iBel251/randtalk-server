@@ -2,6 +2,8 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
+from pydantic import BaseModel
+from typing import Optional
 
 Base = declarative_base()
 
@@ -48,6 +50,17 @@ class Chat(Base):
     preferences = Column(String, nullable=True)  # Matching preferences (e.g., f/25-30/any)
     created_at = Column(String, nullable=False)  # Timestamp when the chat record was created
     updated_at = Column(String, nullable=True)  # Timestamp when the chat record was last updated
+
+# Define a Pydantic model for updating user data
+class UserUpdate(BaseModel):
+    preferences: Optional[str] = None
+    points: Optional[int] = None
+    gender: Optional[str] = None
+    birthdate: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+    age: Optional[int] = None
+    account_status: Optional[str] = None
 
 # Define a function to create tables
 def create_tables():
