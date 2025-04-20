@@ -121,6 +121,12 @@ def run_flask():
 # Define the application object globally
 application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
+# Initialize the Application before processing updates
+import asyncio
+async def init_app():
+    await application.initialize()
+asyncio.run(init_app())
+
 # Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
     try:
