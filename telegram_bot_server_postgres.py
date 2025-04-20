@@ -45,13 +45,12 @@ def telegram_webhook():
         print("Incoming update:", json.dumps(update, indent=2), flush=True)  # Log the incoming update
         if update:
             tg_update = Update.de_json(update, application.bot)
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # If already in an event loop (e.g., on Render), create a task
-                loop.create_task(application.process_update(tg_update))
-            else:
-                # If not in an event loop, run until complete (for local testing)
-                loop.run_until_complete(application.process_update(tg_update))
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            loop.run_until_complete(application.process_update(tg_update))
     except Exception as e:
         print(f"Error in webhook endpoint: {e}", flush=True)
     return "", 200
