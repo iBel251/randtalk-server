@@ -15,11 +15,12 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 PORT = int(os.getenv("PORT", 5000))
 
-application = Application.builder() \
-    .token(TELEGRAM_BOT_TOKEN) \
-    .concurrent_updates(True)  # Telegram recommended for webhook \
-    .post_init(None)           # Default, can be omitted \
+application = (
+    Application.builder()
+    .token(TELEGRAM_BOT_TOKEN)
+    .concurrent_updates(True)  # Telegram recommended for webhook
     .build()
+)
 
 # Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
