@@ -1,5 +1,7 @@
 import os
 from dotenv import load_dotenv
+from flask import Flask, request
+import asyncio
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, CallbackContext, MessageHandler, filters
 from connect_db import get_db, User, Chat as Chats
@@ -13,14 +15,31 @@ load_dotenv()
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-PORT = int(os.getenv("PORT", 5000))
+PORT = int(os.getenv("PORT", 10000))
 
 application = (
     Application.builder()
     .token(TELEGRAM_BOT_TOKEN)
-    .concurrent_updates(True)  # Telegram recommended for webhook
+    .concurrent_updates(True)
     .build()
 )
+
+app = Flask(__name__)
+
+@app.route("/", methods=["GET"])
+def health_check():
+    return "OK", 200
+
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    update = request.get_json(force=True)
+    tg_update = Update.de_json(update, application.bot)
+    loop = asyncio.get_event_loop()
+    if loop.is_running():
+        loop.create_task(application.process_update(tg_update))
+    else:
+        loop.run_until_complete(application.process_update(tg_update))
+    return "", 200
 
 # Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
@@ -148,16 +167,9 @@ def main():
     application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_message))
 
 if __name__ == "__main__":
-    import asyncio
-    async def main_async():
-        main()
-        await application.initialize()
-        await application.bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True, allowed_updates=["message", "edited_message", "callback_query", "chat_member", "my_chat_member"])  # Telegram recommended
-        await application.start()
-        await application.run_webhook(
-            listen="0.0.0.0",
-            port=PORT,
-            webhook_url=WEBHOOK_URL,
-            allowed_updates=["message", "edited_message", "callback_query", "chat_member", "my_chat_member"]  # Telegram recommended
-        )
-    asyncio.run(main_async())
+    main()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(application.initialize())
+    loop.run_until_complete(application.bot.set_webhook(f"{WEBHOOK_URL}/webhook", drop_pending_updates=True, allowed_updates=["message", "edited_message", "callback_query", "chat_member", "my_chat_member"]))
+    app.run(host="0.0.0.0", port=PORT)
