@@ -4,12 +4,13 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import asyncio
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
-from telegram.ext import Application, CommandHandler, CallbackContext, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, CallbackContext, MessageHandler, filters, CallbackQueryHandler
 from connect_db import get_db, User, Chat as Chats
 from start_chat_handler import start_chat
 from search_partner_handler import search_partner
 from forward_chat_handler import forward_message
 from end_chat_handler import end_chat, cancel_waiting
+from menu_handler import menu_handler, menu_callback_handler
 
 # Load environment variables from .env file
 load_dotenv()
@@ -133,9 +134,12 @@ async def start(update: Update, context: CallbackContext) -> None:
         ).order_by(Chats.updated_at.desc()).first()
 
         if user_chat and user_chat.status == "matched":
-            # Show "End Chat" button if the user is matched
+            # Show "End Chat" and "Menu" buttons if the user is matched
             main_menu_keyboard = ReplyKeyboardMarkup(
-                [[KeyboardButton("End Chat")]],
+                [
+                    [KeyboardButton("End Chat")],
+                    [KeyboardButton("Menu")]
+                ],
                 one_time_keyboard=True,
                 resize_keyboard=True
             )
@@ -145,9 +149,12 @@ async def start(update: Update, context: CallbackContext) -> None:
             )
             return
 
-        # Default: Show "Search Partner" button
+        # Default: Show "Search Partner" and "Menu" buttons
         main_menu_keyboard = ReplyKeyboardMarkup(
-            [[KeyboardButton("Search Partner")]],
+            [
+                [KeyboardButton("Search Partner")],
+                [KeyboardButton("Menu")]
+            ],
             one_time_keyboard=True,
             resize_keyboard=True
         )
@@ -205,6 +212,8 @@ def main():
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^Search Partner$"), search_partner))
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^End Chat$"), end_chat))
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^Cancel Waiting$"), cancel_waiting))
+    application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^Menu$"), menu_handler))
+    application.add_handler(CallbackQueryHandler(menu_callback_handler, pattern="^menu_"))
     application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_message))
 
 if __name__ == "__main__":

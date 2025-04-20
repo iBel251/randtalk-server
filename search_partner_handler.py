@@ -6,7 +6,11 @@ from datetime import datetime
 def find_match(db, user_id, preferences):
     # Parse preferences
     gender, age_range, city = preferences.split("/")
-    min_age, max_age = map(int, age_range.split("-")) if "-" in age_range else (None, None)
+    # Handle 'any' for age as well
+    if age_range.lower() == "any":
+        min_age = max_age = None
+    else:
+        min_age, max_age = map(int, age_range.split("-")) if "-" in age_range else (None, None)
 
     # Build the query to find a match from the chats table
     query = db.query(Chats).join(User, Chats.user_id == User.id).filter(
@@ -14,12 +18,15 @@ def find_match(db, user_id, preferences):
         Chats.status == "waiting"  # Only consider users who are waiting
     )
 
-    if gender != "any":
-        query = query.filter(User.gender == gender)
+    # Only filter by gender if not 'any'
+    if gender.lower() != "any":
+        query = query.filter((User.gender == gender) | (User.gender == None))
+    # Only filter by age if not 'any'
     if min_age is not None and max_age is not None:
         query = query.filter(User.age >= min_age, User.age <= max_age)
-    if city != "any":
-        query = query.filter(User.city == city)
+    # Only filter by city if not 'any'
+    if city.lower() != "any":
+        query = query.filter((User.city == city) | (User.city == None))
 
     # Return the first match
     return query.first()
@@ -85,9 +92,12 @@ async def search_partner(update: Update, context: CallbackContext) -> None:
         # Fetch the matched user's details
         matched_user = db.query(User).filter(User.id == match.user_id).first()
 
-        # Notify both users and display the "End Chat" keyboard
+        # Notify both users and display the "End Chat" and "Menu" keyboard
         end_chat_keyboard = ReplyKeyboardMarkup(
-            [[KeyboardButton("End Chat")]],
+            [
+                [KeyboardButton("End Chat")],
+                [KeyboardButton("Menu")]
+            ],
             one_time_keyboard=True,
             resize_keyboard=True
         )
@@ -102,7 +112,7 @@ async def search_partner(update: Update, context: CallbackContext) -> None:
             reply_markup=end_chat_keyboard
         )
 
-        # Update the keyboard to show "End Chat" after a match is found
+        # Update the keyboard to show "End Chat" and "Menu" after a match is found
         await update.message.reply_text(
             "You are now matched! You can end the chat anytime.",
             reply_markup=end_chat_keyboard
@@ -121,9 +131,12 @@ async def search_partner(update: Update, context: CallbackContext) -> None:
         db.add(new_chat)
         db.commit()
 
-        # Display the "Cancel Waiting" button when the user is added to the waiting list
+        # Display the "Cancel Waiting" and "Menu" button when the user is added to the waiting list
         cancel_waiting_keyboard = ReplyKeyboardMarkup(
-            [[KeyboardButton("Cancel Waiting")]],
+            [
+                [KeyboardButton("Cancel Waiting")],
+                [KeyboardButton("Menu")]
+            ],
             one_time_keyboard=True,
             resize_keyboard=True
         )

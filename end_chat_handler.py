@@ -38,7 +38,10 @@ async def end_chat(update: Update, context: CallbackContext) -> None:
 
     # Notify both users
     search_partner_keyboard = ReplyKeyboardMarkup(
-        [[KeyboardButton("Search Partner")]],
+        [
+            [KeyboardButton("Search Partner")],
+            [KeyboardButton("Menu")]
+        ],
         one_time_keyboard=True,
         resize_keyboard=True
     )
@@ -70,7 +73,10 @@ async def cancel_waiting(update: Update, context: CallbackContext) -> None:
 
     # Notify the user
     search_partner_keyboard = ReplyKeyboardMarkup(
-        [[KeyboardButton("Search Partner")]],
+        [
+            [KeyboardButton("Search Partner")],
+            [KeyboardButton("Menu")]
+        ],
         one_time_keyboard=True,
         resize_keyboard=True
     )
