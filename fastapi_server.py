@@ -45,6 +45,10 @@ application = (
     .build()
 )
 
+def safe_base64_decode(s):
+    s += '=' * (-len(s) % 4)
+    return base64.urlsafe_b64decode(s).decode()
+
 def register_handlers():
     async def start(update: Update, context: CallbackContext) -> None:
         try:
@@ -59,9 +63,7 @@ def register_handlers():
                 if match and not user_data:
                     encoded_referrer = match.group(1)
                     try:
-                        # Pad base64 string if needed
-                        padded = encoded_referrer + '=' * (-len(encoded_referrer) % 4)
-                        referrer_id = int(base64.urlsafe_b64decode(padded).decode())
+                        referrer_id = int(safe_base64_decode(encoded_referrer))
                         referrer = db.query(User).filter(User.id == referrer_id).first()
                         if referrer:
                             referrer.points = (referrer.points or 0) + 10
