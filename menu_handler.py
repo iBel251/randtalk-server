@@ -1,3 +1,4 @@
+import base64
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from telegram.ext import CallbackContext
 from connect_db import get_db, User
@@ -27,8 +28,9 @@ async def menu_callback_handler(update: Update, context: CallbackContext) -> Non
         await query.answer()
         await query.edit_message_text(f"You have {points} points.")
     elif query.data == "menu_earn_points":
-        # Generate the referral link for the user
-        referral_link = f"https://t.me/YourBotUsername?start=ref_{user_id}"
+        # Encode the user ID in base64 for the referral link
+        encoded_id = base64.urlsafe_b64encode(str(user_id).encode()).decode().rstrip('=')
+        referral_link = f"https://t.me/etrandtalkbot?start=ref_{encoded_id}"
         message = (
             "To earn points, invite your friends to use RandTalket!\n"
             f"Share your referral link: {referral_link}\n\n"

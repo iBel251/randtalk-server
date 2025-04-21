@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 from telegram_auth import router as telegram_auth_router
 from sqlalchemy import or_
 import re
+import base64
 
 load_dotenv()
 
@@ -54,14 +55,20 @@ def register_handlers():
 
             # Check for referral in /start command (only for new users)
             if update.message and update.message.text:
-                match = re.match(r"/start ref_(\d+)", update.message.text)
+                match = re.match(r"/start ref_([A-Za-z0-9_-]+)", update.message.text)
                 if match and not user_data:
-                    referrer_id = int(match.group(1))
-                    referrer = db.query(User).filter(User.id == referrer_id).first()
-                    if referrer:
-                        referrer.points = (referrer.points or 0) + 10
-                        db.commit()
-                        await context.bot.send_message(chat_id=referrer_id, text=f"🎉 You earned 10 points for inviting a new user!")
+                    encoded_referrer = match.group(1)
+                    try:
+                        # Pad base64 string if needed
+                        padded = encoded_referrer + '=' * (-len(encoded_referrer) % 4)
+                        referrer_id = int(base64.urlsafe_b64decode(padded).decode())
+                        referrer = db.query(User).filter(User.id == referrer_id).first()
+                        if referrer:
+                            referrer.points = (referrer.points or 0) + 10
+                            db.commit()
+                            await context.bot.send_message(chat_id=referrer_id, text=f"🎉 You earned 10 points for inviting a new user!")
+                    except Exception as e:
+                        print(f"Referral decode error: {e}")
 
             # Registration and onboarding logic
             if not user_data:
@@ -174,7 +181,7 @@ async def telegram_webhook(request: Request):
     return JSONResponse(content={"ok": True})
 
 # Handler for contact sharing (must be async for FastAPI)
-async def handle_contact(update: Update, context: CallbackQueryHandler):
+async def handle_contact(update: Update, context: CallbackContext):
     contact = update.message.contact
     user_id = int(contact.user_id)
     db = next(get_db())
@@ -183,22 +190,13 @@ async def handle_contact(update: Update, context: CallbackQueryHandler):
         user_data.phone = contact.phone_number
         user_data.account_status = "phoneShared"
         db.commit()
-        await update.message.reply_text("Thank you for sharing your phone number! Please complete your registration using the integrated web app.")
+        # Send a single, clear message with the web app button
         web_app_button = InlineKeyboardMarkup([
             [InlineKeyboardButton("Complete Registration", web_app=WebAppInfo(url=f"https://randtalk-18e41.web.app/{user_id}"))]
         ])
         await update.message.reply_text(
-            "Click the button below to complete your registration:",
+            "Thank you for sharing your phone number! Please complete your registration using the button below:",
             reply_markup=web_app_button
-        )
-        search_partner_keyboard = ReplyKeyboardMarkup(
-            [[KeyboardButton("Search Partner")]],
-            one_time_keyboard=True,
-            resize_keyboard=True
-        )
-        await update.message.reply_text(
-            "You can now search for a partner!",
-            reply_markup=search_partner_keyboard
         )
 
 @app.on_event("startup")
