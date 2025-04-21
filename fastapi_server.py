@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import asyncio
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, CallbackContext
 from connect_db import get_db, User, Chat as Chats, UserUpdate
 from start_chat_handler import start_chat
@@ -90,7 +90,6 @@ def register_handlers():
 
             if user_data.account_status != "complete":
                 # Add a button linking to the integrated web app
-                from telegram import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
                 web_app_button = InlineKeyboardMarkup([
                     [InlineKeyboardButton("Complete Registration", web_app=WebAppInfo(url=f"https://randtalk-18e41.web.app/{user_id}"))]
                 ])
@@ -101,7 +100,6 @@ def register_handlers():
                 return
 
             # Default: Show main menu
-            from telegram import ReplyKeyboardMarkup, KeyboardButton
             main_menu_keyboard = ReplyKeyboardMarkup(
                 [
                     [KeyboardButton("Search Partner")],
@@ -186,7 +184,6 @@ async def handle_contact(update: Update, context: CallbackQueryHandler):
         user_data.account_status = "phoneShared"
         db.commit()
         await update.message.reply_text("Thank you for sharing your phone number! Please complete your registration using the integrated web app.")
-        from telegram import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
         web_app_button = InlineKeyboardMarkup([
             [InlineKeyboardButton("Complete Registration", web_app=WebAppInfo(url=f"https://randtalk-18e41.web.app/{user_id}"))]
         ])
