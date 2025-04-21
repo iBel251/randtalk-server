@@ -168,7 +168,12 @@ def update_user(user_id: int, data: UserUpdate):
             setattr(user, key, value)
     db.commit()
     # If the user just completed registration, or if the user was already complete but updated their data, notify them in Telegram
-    if (update_data.get("account_status") == "complete" and was_incomplete) or (user.account_status == "complete" and update_data):
+    should_notify = False
+    if update_data.get("account_status") == "complete" and was_incomplete:
+        should_notify = True
+    elif user.account_status == "complete" and any(k in update_data for k in ["preferences", "age", "city", "country", "gender", "birthdate"]):
+        should_notify = True
+    if should_notify:
         main_menu_keyboard = ReplyKeyboardMarkup(
             [
                 [KeyboardButton("Search Partner")],
