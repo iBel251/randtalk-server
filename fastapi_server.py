@@ -12,6 +12,7 @@ from forward_chat_handler import forward_message
 from end_chat_handler import end_chat, cancel_waiting
 from menu_handler import menu_handler, menu_callback_handler
 from dotenv import load_dotenv
+from telegram_auth import router as telegram_auth_router
 
 load_dotenv()
 
@@ -140,3 +141,5 @@ async def on_startup():
         allowed_updates=["message", "edited_message", "callback_query", "chat_member", "my_chat_member"]
     )
     await application.start()
+
+app.include_router(telegram_auth_router)
