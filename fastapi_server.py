@@ -52,7 +52,7 @@ def register_handlers():
             db = next(get_db())
             user_data = db.query(User).filter(User.id == user_id).first()
 
-            # Check for referral in /start command
+            # Check for referral in /start command (only for new users)
             if update.message and update.message.text:
                 match = re.match(r"/start ref_(\d+)", update.message.text)
                 if match and not user_data:
@@ -62,9 +62,62 @@ def register_handlers():
                         referrer.points = (referrer.points or 0) + 10
                         db.commit()
                         await context.bot.send_message(chat_id=referrer_id, text=f"🎉 You earned 10 points for inviting a new user!")
-            await update.message.reply_text("Welcome to RandTalket! Use the menu to navigate.")
+
+            # Registration and onboarding logic
+            if not user_data:
+                # New user: Ask for contact number
+                keyboard = [[KeyboardButton("Share Contact", request_contact=True)]]
+                reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
+                await update.message.reply_text(
+                    "Welcome! Please share your contact number to register.",
+                    reply_markup=reply_markup
+                )
+                # Save initial user details
+                new_user = User(id=user_id, name=user.first_name, username=user.username, account_status="incomplete", phone=None)
+                db.add(new_user)
+                db.commit()
+                return
+
+            if not user_data.phone:
+                # Ask for contact number if missing
+                keyboard = [[KeyboardButton("Share Contact", request_contact=True)]]
+                reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
+                await update.message.reply_text(
+                    "Your phone number is missing. Please share your contact number to complete your registration.",
+                    reply_markup=reply_markup
+                )
+                return
+
+            if user_data.account_status != "complete":
+                # Add a button linking to the integrated web app
+                from telegram import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+                web_app_button = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("Complete Registration", web_app=WebAppInfo(url=f"https://randtalk-18e41.web.app/{user_id}"))]
+                ])
+                await update.message.reply_text(
+                    "Your account is incomplete. Please complete your registration using the integrated web app:",
+                    reply_markup=web_app_button
+                )
+                return
+
+            # Default: Show main menu
+            from telegram import ReplyKeyboardMarkup, KeyboardButton
+            main_menu_keyboard = ReplyKeyboardMarkup(
+                [
+                    [KeyboardButton("Search Partner")],
+                    [KeyboardButton("Menu")]
+                ],
+                one_time_keyboard=True,
+                resize_keyboard=True
+            )
+            await update.message.reply_text(
+                "Welcome back! Your account is complete. Enjoy using the bot!",
+                reply_markup=main_menu_keyboard
+            )
         except Exception as e:
             print(f"Error in start handler: {e}")
+            if update.message:
+                await update.message.reply_text("An error occurred. Please try again later.")
     
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.CONTACT, handle_contact))
