@@ -46,7 +46,10 @@ application = (
 )
 
 def safe_base64_decode(s):
-    s += '=' * (-len(s) % 4)
+    s = s.strip().replace(' ', '').replace('\n', '')
+    missing_padding = len(s) % 4
+    if missing_padding:
+        s += '=' * (4 - missing_padding)
     return base64.urlsafe_b64decode(s).decode()
 
 def register_handlers():
