@@ -1,4 +1,3 @@
-import base64
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from telegram.ext import CallbackContext
 from connect_db import get_db, User

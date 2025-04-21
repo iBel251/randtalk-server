@@ -161,11 +161,30 @@ def update_user(user_id: int, data: UserUpdate):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    was_incomplete = user.account_status != "complete"
     update_data = data.dict(exclude_unset=True)
     for key, value in update_data.items():
         if hasattr(user, key):
             setattr(user, key, value)
     db.commit()
+    # If the user just completed registration, or if the user was already complete but updated their data, notify them in Telegram
+    if (update_data.get("account_status") == "complete" and was_incomplete) or (user.account_status == "complete" and update_data):
+        main_menu_keyboard = ReplyKeyboardMarkup(
+            [
+                [KeyboardButton("Search Partner")],
+                [KeyboardButton("Menu")]
+            ],
+            one_time_keyboard=True,
+            resize_keyboard=True
+        )
+        import asyncio
+        asyncio.create_task(
+            application.bot.send_message(
+                chat_id=user_id,
+                text="✅ Your profile has been updated! You can now search for a partner.",
+                reply_markup=main_menu_keyboard
+            )
+        )
     return {"message": "User data updated successfully"}
 
 @app.post("/webhook")
