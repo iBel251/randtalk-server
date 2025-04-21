@@ -48,5 +48,11 @@ async def forward_message(update: Update, context: CallbackContext) -> None:
         await context.bot.send_video(chat_id=partner_id, video=message.video.file_id, caption=message.caption)
     elif message.document:
         await context.bot.send_document(chat_id=partner_id, document=message.document.file_id, caption=message.caption)
+    elif message.audio:
+        await context.bot.send_audio(chat_id=partner_id, audio=message.audio.file_id, caption=message.caption)
+    elif message.voice:
+        await context.bot.send_voice(chat_id=partner_id, voice=message.voice.file_id, caption=message.caption)
+    elif message.video_note:
+        await context.bot.send_video_note(chat_id=partner_id, video_note=message.video_note.file_id)
     else:
-        await update.message.reply_text("Unsupported message type. Only text, photos, videos, and documents can be forwarded.")
+        await update.message.reply_text("Unsupported message type. Only text, photos, videos, audio, voice, video notes, and documents can be forwarded.")
