@@ -28,9 +28,9 @@ async def menu_callback_handler(update: Update, context: CallbackContext) -> Non
         await query.answer()
         await query.edit_message_text(f"You have {points} points.")
     elif query.data == "menu_earn_points":
-        # Encode the user ID in base64 for the referral link
-        encoded_id = base64.urlsafe_b64encode(str(user_id).encode()).decode().rstrip('=')
-        referral_link = f"https://t.me/etrandtalkbot?start=ref_{encoded_id}"
+        # Add a pin to the end of the user ID for the referral link
+        referral_code = f"{user_id}8162"
+        referral_link = f"https://t.me/etrandtalkbot?start=ref_{referral_code}"
         message = (
             "To earn points, invite your friends to use RandTalket!\n"
             f"Share your referral link: {referral_link}\n\n"

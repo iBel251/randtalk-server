@@ -15,7 +15,6 @@ from dotenv import load_dotenv
 from telegram_auth import router as telegram_auth_router
 from sqlalchemy import or_
 import re
-import base64
 
 load_dotenv()
 
@@ -45,13 +44,6 @@ application = (
     .build()
 )
 
-def safe_base64_decode(s):
-    s = s.strip().replace(' ', '').replace('\n', '')
-    missing_padding = len(s) % 4
-    if missing_padding:
-        s += '=' * (4 - missing_padding)
-    return base64.urlsafe_b64decode(s).decode()
-
 def register_handlers():
     async def start(update: Update, context: CallbackContext) -> None:
         try:
@@ -62,18 +54,16 @@ def register_handlers():
 
             # Check for referral in /start command (only for new users)
             if update.message and update.message.text:
-                match = re.match(r"/start ref_([A-Za-z0-9_-]+)", update.message.text)
+                match = re.match(r"/start ref_(\d+8162)", update.message.text)
                 if match and not user_data:
-                    encoded_referrer = match.group(1)
-                    try:
-                        referrer_id = int(safe_base64_decode(encoded_referrer))
+                    referral_code = match.group(1)
+                    if referral_code.endswith("8162"):
+                        referrer_id = int(referral_code[:-4])
                         referrer = db.query(User).filter(User.id == referrer_id).first()
                         if referrer:
                             referrer.points = (referrer.points or 0) + 10
                             db.commit()
                             await context.bot.send_message(chat_id=referrer_id, text=f"🎉 You earned 10 points for inviting a new user!")
-                    except Exception as e:
-                        print(f"Referral decode error: {e}")
 
             # Registration and onboarding logic
             if not user_data:
