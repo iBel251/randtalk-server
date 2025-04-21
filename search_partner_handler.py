@@ -3,6 +3,9 @@ from telegram.ext import CallbackContext
 from connect_db import get_db, User, Chat as Chats
 from datetime import datetime
 
+# In-memory cache for active chat sessions
+active_chats = {}
+
 def find_match(db, user_id, preferences):
     # Parse preferences
     gender, age_range, city = preferences.split("/")
@@ -88,6 +91,10 @@ async def search_partner(update: Update, context: CallbackContext) -> None:
         )
         db.add(new_chat)
         db.commit()
+
+        # Store both users as active chat partners in the in-memory cache
+        active_chats[user_id] = match.user_id
+        active_chats[match.user_id] = user_id
 
         # Fetch the matched user's details
         matched_user = db.query(User).filter(User.id == match.user_id).first()
