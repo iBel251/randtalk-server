@@ -4,15 +4,17 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import asyncio
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters
+from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, CallbackContext
 from connect_db import get_db, User, Chat as Chats, UserUpdate
 from start_chat_handler import start_chat
-from search_partner_handler import search_partner, active_chats
+from search_partner_handler import search_partner
 from forward_chat_handler import forward_message
 from end_chat_handler import end_chat, cancel_waiting
 from menu_handler import menu_handler, menu_callback_handler
 from dotenv import load_dotenv
 from telegram_auth import router as telegram_auth_router
+from sqlalchemy import or_
+import re
 
 load_dotenv()
 
@@ -43,28 +45,36 @@ application = (
 )
 
 def register_handlers():
-    async def start(update: Update, context):
-        await update.message.reply_text("Welcome to RandTalket! Use the menu to navigate.")
+    async def start(update: Update, context: CallbackContext) -> None:
+        try:
+            user = update.effective_user
+            user_id = int(user.id)
+            db = next(get_db())
+            user_data = db.query(User).filter(User.id == user_id).first()
 
-    # Custom command filter: Only allow commands if user is not in active chat
-    async def command_filter(update, context, handler_func, command_name=None):
-        user_id = int(update.effective_user.id)
-        # Allow 'End Chat' even if user is in active chat
-        if user_id in active_chats and command_name not in ["End Chat", "Cancel Waiting"]:
-            await forward_message(update, context)
-        else:
-            await handler_func(update, context)
-
-    # Wrap command handlers with the filter, passing command_name
-    application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^/start$"), lambda u, c: command_filter(u, c, start, "/start")))
-    application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^Search Partner$"), lambda u, c: command_filter(u, c, search_partner, "Search Partner")))
-    application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^End Chat$"), lambda u, c: command_filter(u, c, end_chat, "End Chat")))
-    application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^Cancel Waiting$"), lambda u, c: command_filter(u, c, cancel_waiting, "Cancel Waiting")))
-    application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^Menu$"), lambda u, c: command_filter(u, c, menu_handler, "Menu")))
+            # Check for referral in /start command
+            if update.message and update.message.text:
+                match = re.match(r"/start ref_(\d+)", update.message.text)
+                if match and not user_data:
+                    referrer_id = int(match.group(1))
+                    referrer = db.query(User).filter(User.id == referrer_id).first()
+                    if referrer:
+                        referrer.points = (referrer.points or 0) + 10
+                        db.commit()
+                        await context.bot.send_message(chat_id=referrer_id, text=f"🎉 You earned 10 points for inviting a new user!")
+            await update.message.reply_text("Welcome to RandTalket! Use the menu to navigate.")
+        except Exception as e:
+            print(f"Error in start handler: {e}")
+    
+    application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^Start Chat$"), lambda u, c: start_chat(u, c, next(get_db()))))
-    application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_message))
+    application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^Search Partner$"), search_partner))
+    application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^End Chat$"), end_chat))
+    application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^Cancel Waiting$"), cancel_waiting))
+    application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^Menu$"), menu_handler))
     application.add_handler(CallbackQueryHandler(menu_callback_handler, pattern="^menu_"))
+    application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_message))
 
 @app.get("/")
 def health_check():

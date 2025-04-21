@@ -1,7 +1,6 @@
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 from connect_db import get_db, Chat
-from search_partner_handler import active_chats
 
 def end_chat_in_db(db, user_id):
     """Remove both the user's and their partner's chat records from the database."""
@@ -32,12 +31,6 @@ async def end_chat(update: Update, context: CallbackContext) -> None:
 
     # End the chat in the database
     partner_id = end_chat_in_db(db, user_id)
-
-    # Remove both users from the in-memory active_chats cache
-    if user_id in active_chats:
-        partner = active_chats.pop(user_id)
-        if partner in active_chats:
-            active_chats.pop(partner)
 
     if not partner_id:
         await update.message.reply_text("You are not currently in an active chat.")

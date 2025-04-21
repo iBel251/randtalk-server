@@ -27,15 +27,15 @@ async def menu_callback_handler(update: Update, context: CallbackContext) -> Non
         await query.answer()
         await query.edit_message_text(f"You have {points} points.")
     elif query.data == "menu_earn_points":
-        webapp_url = f"https://randtalk-18e41.web.app/earn/{user_id}"
-        inline_keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("Open Web App to Earn Points", web_app=WebAppInfo(url=webapp_url))]
-        ])
-        await query.answer()
-        await query.edit_message_text(
-            "To earn points, open the web app:",
-            reply_markup=inline_keyboard
+        # Generate the referral link for the user
+        referral_link = f"https://t.me/YourBotUsername?start=ref_{user_id}"
+        message = (
+            "To earn points, invite your friends to use RandTalket!\n"
+            f"Share your referral link: {referral_link}\n\n"
+            "You will earn points for every friend who joins using your link."
         )
+        await query.answer()
+        await query.edit_message_text(message)
     elif query.data == "menu_edit_preferences":
         webapp_url = f"https://randtalk-18e41.web.app/{user_id}"
         inline_keyboard = InlineKeyboardMarkup([

@@ -1,7 +1,6 @@
 from telegram import Update
 from telegram.ext import CallbackContext
 from connect_db import get_db, Chat
-from search_partner_handler import active_chats
 
 def get_partner_id(db, sender_id):
     # Ensure the `sender_id` is passed as an integer to match the database type
@@ -25,12 +24,11 @@ async def forward_message(update: Update, context: CallbackContext) -> None:
     user_id = int(update.effective_user.id)
     message = update.message
 
-    # First, check in-memory active_chats for a partner
-    partner_id = active_chats.get(user_id)
-    if not partner_id:
-        # Fallback to database if not found in memory
-        db = next(get_db())
-        partner_id = get_partner_id(db, user_id)
+    # Fetch the database session
+    db = next(get_db())
+
+    # Get the partner ID
+    partner_id = get_partner_id(db, user_id)
 
     if not partner_id:
         await update.message.reply_text("You are not currently matched with any partner.")
