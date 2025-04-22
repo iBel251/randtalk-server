@@ -19,8 +19,12 @@ async def play_games_callback_handler(update: Update, context: CallbackContext) 
     query = update.callback_query
     if query.data == "game_card_match":
         await query.answer()
-        # Start the card match game for the user
-        await card_test_handler(update, context)
+        # Synthesize a message update for card_test_handler
+        fake_update = Update(
+            update.update_id,
+            message=query.message
+        )
+        await card_test_handler(fake_update, context)
     else:
         await query.answer()
         await query.edit_message_text("Unknown game option.")
