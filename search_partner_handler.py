@@ -2,6 +2,7 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 from connect_db import get_db, User, Chat as Chats
 from datetime import datetime
+from keyboards import END_CHAT_KEYBOARD, CANCEL_WAITING_KEYBOARD
 
 # In-memory cache for active chat sessions
 active_chats = {}
@@ -99,30 +100,21 @@ async def search_partner(update: Update, context: CallbackContext) -> None:
         # Fetch the matched user's details
         matched_user = db.query(User).filter(User.id == match.user_id).first()
 
-        # Notify both users and display the "End Chat" and "Menu" keyboard
-        end_chat_keyboard = ReplyKeyboardMarkup(
-            [
-                [KeyboardButton("End Chat")],
-                [KeyboardButton("Menu")]
-            ],
-            one_time_keyboard=True,
-            resize_keyboard=True
-        )
-
+        # Notify both users and display the "End Chat", "Menu", and "Play Games" keyboard
         await update.message.reply_text(
             f"You have been matched with {matched_user.name}! Start chatting now.",
-            reply_markup=end_chat_keyboard
+            reply_markup=END_CHAT_KEYBOARD
         )
         await context.bot.send_message(
             chat_id=match.user_id,
             text=f"You have been matched with {user_data.name}! Start chatting now.",
-            reply_markup=end_chat_keyboard
+            reply_markup=END_CHAT_KEYBOARD
         )
 
-        # Update the keyboard to show "End Chat" and "Menu" after a match is found
+        # Update the keyboard to show "End Chat", "Menu", and "Play Games" after a match is found
         await update.message.reply_text(
             "You are now matched! You can end the chat anytime.",
-            reply_markup=end_chat_keyboard
+            reply_markup=END_CHAT_KEYBOARD
         )
         return
 
@@ -138,16 +130,8 @@ async def search_partner(update: Update, context: CallbackContext) -> None:
         db.add(new_chat)
         db.commit()
 
-        # Display the "Cancel Waiting" and "Menu" button when the user is added to the waiting list
-        cancel_waiting_keyboard = ReplyKeyboardMarkup(
-            [
-                [KeyboardButton("Cancel Waiting")],
-                [KeyboardButton("Menu")]
-            ],
-            one_time_keyboard=True,
-            resize_keyboard=True
-        )
+        # Display the "Cancel Waiting", "Menu", and "Play Games" button when the user is added to the waiting list
         await update.message.reply_text(
             "No match found at the moment. You have been added to the waiting list.",
-            reply_markup=cancel_waiting_keyboard
+            reply_markup=CANCEL_WAITING_KEYBOARD
         )

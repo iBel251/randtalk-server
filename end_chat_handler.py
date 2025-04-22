@@ -1,6 +1,7 @@
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 from connect_db import get_db, Chat
+from keyboards import END_CHAT_KEYBOARD, CANCEL_WAITING_KEYBOARD
 
 def end_chat_in_db(db, user_id):
     """Remove both the user's and their partner's chat records from the database."""
@@ -37,23 +38,14 @@ async def end_chat(update: Update, context: CallbackContext) -> None:
         return
 
     # Notify both users
-    search_partner_keyboard = ReplyKeyboardMarkup(
-        [
-            [KeyboardButton("Search Partner")],
-            [KeyboardButton("Menu")]
-        ],
-        one_time_keyboard=True,
-        resize_keyboard=True
-    )
-
     await update.message.reply_text(
         "The chat has been terminated. You can now search for a new partner.",
-        reply_markup=search_partner_keyboard
+        reply_markup=END_CHAT_KEYBOARD
     )
     await context.bot.send_message(
         chat_id=partner_id,
         text="The chat has been terminated by your partner. You can now search for a new partner.",
-        reply_markup=search_partner_keyboard
+        reply_markup=END_CHAT_KEYBOARD
     )
 
 async def cancel_waiting(update: Update, context: CallbackContext) -> None:
@@ -72,16 +64,7 @@ async def cancel_waiting(update: Update, context: CallbackContext) -> None:
     db.commit()
 
     # Notify the user
-    search_partner_keyboard = ReplyKeyboardMarkup(
-        [
-            [KeyboardButton("Search Partner")],
-            [KeyboardButton("Menu")]
-        ],
-        one_time_keyboard=True,
-        resize_keyboard=True
-    )
-
     await update.message.reply_text(
         "You have been removed from the waiting list. You can now search for a partner again.",
-        reply_markup=search_partner_keyboard
+        reply_markup=CANCEL_WAITING_KEYBOARD
     )
