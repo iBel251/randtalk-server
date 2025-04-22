@@ -14,18 +14,3 @@ async def play_games_handler(update: Update, context: CallbackContext) -> None:
         reply_markup=games_keyboard,
         parse_mode="HTML"
     )
-
-async def play_games_callback_handler(update: Update, context: CallbackContext) -> None:
-    query = update.callback_query
-    if query.data == "game_card_match":
-        await query.answer()
-        # Synthesize a message update for card_test_handler, but also set effective_user
-        fake_update = Update(
-            update.update_id,
-            message=query.message,
-            effective_user=query.from_user
-        )
-        await card_test_handler(fake_update, context)
-    else:
-        await query.answer()
-        await query.edit_message_text("Unknown game option.")
