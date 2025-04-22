@@ -16,6 +16,7 @@ from telegram_auth import router as telegram_auth_router
 from sqlalchemy import or_
 from keyboards import MAIN_MENU_KEYBOARD
 from play_games_handler import play_games_handler, play_games_callback_handler
+from card_game_test import card_test_handler, card_draw_callback_handler
 import re
 
 load_dotenv()
@@ -123,6 +124,7 @@ def register_handlers():
     application.add_handler(CallbackQueryHandler(menu_callback_handler, pattern="^menu_"))
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^Play Games$"), play_games_handler))
     application.add_handler(CallbackQueryHandler(play_games_callback_handler, pattern="^game_"))
+    application.add_handler(CallbackQueryHandler(card_draw_callback_handler, pattern="^card_draw$"))
     application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_message))
 
 @app.get("/")
