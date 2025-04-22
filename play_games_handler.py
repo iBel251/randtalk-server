@@ -19,10 +19,11 @@ async def play_games_callback_handler(update: Update, context: CallbackContext) 
     query = update.callback_query
     if query.data == "game_card_match":
         await query.answer()
-        # Synthesize a message update for card_test_handler
+        # Synthesize a message update for card_test_handler, but also set effective_user
         fake_update = Update(
             update.update_id,
-            message=query.message
+            message=query.message,
+            effective_user=query.from_user
         )
         await card_test_handler(fake_update, context)
     else:
