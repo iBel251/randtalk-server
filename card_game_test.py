@@ -1,5 +1,5 @@
 import random
-from telegram import Update
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 
 # In-memory storage for card games
@@ -23,20 +23,30 @@ async def card_test_handler(update: Update, context: CallbackContext) -> None:
     # Store in memory
     active_card_games[user_id] = {"hand": hand, "deck": remaining_deck}
     hand_str = " ".join(hand)
-    await update.message.reply_text(f"🃏 Your hand: {hand_str}\n(Type /draw to draw a card)")
+    draw_keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("Draw", callback_data="card_draw")]
+    ])
+    await update.message.reply_text(f"🃏 Your hand: {hand_str}", reply_markup=draw_keyboard)
 
-async def card_draw_handler(update: Update, context: CallbackContext) -> None:
-    user_id = update.effective_user.id
+async def card_draw_callback_handler(update: Update, context: CallbackContext) -> None:
+    query = update.callback_query
+    user_id = query.from_user.id
     game = active_card_games.get(user_id)
     if not game:
-        await update.message.reply_text("No game in progress. Type /cardtest to start.")
+        await query.answer()
+        await query.edit_message_text("No game in progress. Click Card Match to start.")
         return
     hand = game["hand"]
     deck = game["deck"]
     if not deck:
-        await update.message.reply_text("No more cards in the deck!")
+        await query.answer()
+        await query.edit_message_text("No more cards in the deck!")
         return
-    drawn = deck.pop(0)
+    drawn = deck.pop(random.randrange(len(deck)))
     hand.append(drawn)
     hand_str = " ".join(hand)
-    await update.message.reply_text(f"You drew: {drawn}\nYour hand: {hand_str}")
+    draw_keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("Draw", callback_data="card_draw")]
+    ])
+    await query.answer()
+    await query.edit_message_text(f"You drew: {drawn}\nYour hand: {hand_str}", reply_markup=draw_keyboard)
