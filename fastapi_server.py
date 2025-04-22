@@ -2,7 +2,6 @@ from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import os
-import asyncio
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, CallbackContext
 from connect_db import get_db, User, Chat as Chats, UserUpdate
@@ -16,7 +15,6 @@ from telegram_auth import router as telegram_auth_router
 from sqlalchemy import or_
 from keyboards import MAIN_MENU_KEYBOARD
 from play_games_handler import play_games_handler
-from card_game_test import card_test_handler, card_draw_callback_handler, card_match_callback_handler
 import re
 
 load_dotenv()
@@ -123,8 +121,6 @@ def register_handlers():
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^Menu$"), menu_handler))
     application.add_handler(CallbackQueryHandler(menu_callback_handler, pattern="^menu_"))
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^Play Games$"), play_games_handler))
-    application.add_handler(CallbackQueryHandler(card_match_callback_handler, pattern="^game_card_match$"))
-    application.add_handler(CallbackQueryHandler(card_draw_callback_handler, pattern="^card_draw$"))
     application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_message))
 
 @app.get("/")

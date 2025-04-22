@@ -1,10 +1,10 @@
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update, WebAppInfo
 from telegram.ext import CallbackContext
-from card_game_test import card_test_handler
 
 async def play_games_handler(update: Update, context: CallbackContext) -> None:
+    user_id = update.effective_user.id
     games_keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🃏 Card Match", callback_data="game_card_match")]
+        [InlineKeyboardButton("🃏 Card Match", web_app=WebAppInfo(url=f"https://randtalk-18e41.web.app/cardmatch?user_id={user_id}"))]
     ])
     await update.message.reply_text(
         "🎮 <b>Welcome to Play Games!</b>\n\n"
